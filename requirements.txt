@@ -1,0 +1,11 @@
+faiss-cpu
+fastapi
+langchain
+langchain-community
+langchain-text-splitters
+langchain-google-genai
+langchain-huggingface
+sentence-transformers
+uvicorn
+psycopg2-binary
+sqlalchemy

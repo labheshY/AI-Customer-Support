@@ -1,0 +1,59 @@
+Q: How can I track my order?
+A: You can track your order by going to the "My Orders" section in your account. Click on the order to view real-time tracking details.
+
+Q: What is the delivery time?
+A: Standard delivery usually takes 3–7 business days depending on your location.
+
+Q: Can I cancel my order after placing it?
+A: Yes, you can cancel your order before it is shipped from the warehouse.
+
+Q: How do I request a refund?
+A: Refunds can be requested from the "My Orders" section after the item is delivered.
+
+Q: When will I receive my refund?
+A: Refunds are processed within 5–7 business days after approval.
+
+Q: What if my order is delayed?
+A: If your order is delayed, you will receive a notification. You can also contact support for assistance.
+
+Q: What should I do if I receive a damaged product?
+A: You can request a replacement or refund within 7 days of delivery.
+
+Q: Can I change my delivery address?
+A: Yes, you can update your address before the order is shipped.
+
+Q: What payment methods are accepted?
+A: We accept credit cards, debit cards, UPI, and net banking.
+
+Q: Is Cash on Delivery available?
+A: Yes, Cash on Delivery is available for selected locations.
+
+Q: How do I contact customer support?
+A: You can contact support via chat, email, or phone available in the Help section.
+
+Q: Do you offer returns?
+A: Yes, most products are eligible for return within 7 days of delivery.
+
+Q: What if I entered the wrong address?
+A: You can edit your address before shipping or contact support immediately.
+
+Q: How do I apply a coupon?
+A: Coupons can be applied at checkout in the "Apply Coupon" section.
+
+Q: Why was my payment declined?
+A: Payment may fail due to insufficient balance or bank issues. Try another method.
+
+Q: Can I track multiple orders?
+A: Yes, all your orders can be tracked individually in the "My Orders" section.
+
+Q: What happens if I miss my delivery?
+A: The courier will attempt delivery again or contact you.
+
+Q: How do I reset my password?
+A: Use the "Forgot Password" option on the login page.
+
+Q: Are there any shipping charges?
+A: Shipping is free for orders above a certain amount; otherwise, a fee applies.
+
+Q: Can I return non-returnable items?
+A: Non-returnable items are not eligible unless damaged or defective.

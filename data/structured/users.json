@@ -1,0 +1,10 @@
+[
+  {"user_id": "U001", "name": "Amit Sharma", "email": "amit@example.com"},
+  {"user_id": "U002", "name": "Priya Verma", "email": "priya@example.com"},
+  {"user_id": "U003", "name": "Rahul Singh", "email": "rahul@example.com"},
+  {"user_id": "U004", "name": "Neha Gupta", "email": "neha@example.com"},
+  {"user_id": "U005", "name": "Karan Mehta", "email": "karan@example.com"},
+  {"user_id": "U006", "name": "Sneha Patil", "email": "sneha@example.com"},
+  {"user_id": "U007", "name": "Vikram Joshi", "email": "vikram@example.com"},
+  {"user_id": "U008", "name": "Pooja Nair", "email": "pooja@example.com"}
+]
