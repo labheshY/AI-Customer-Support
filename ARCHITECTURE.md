@@ -36,8 +36,9 @@ Unlike traditional chatbots, this system uses **LangGraph** to manage conversati
 
 ### 2. Security-First Middleware
 Security is enforced at the **Entry Point** (FastAPI) and the **Execution Point** (Tools):
-- **JWT Middleware**: Every request to protected endpoints (`/ask`, `/admin/*`) must provide a valid Bearer Token.
-- **Resource Guarding**: Tools like `tool_get_order_status` do not just take an `order_id`; they also receive the authenticated `user_id` from the JWT to ensure the user actually owns that order.
+- **JWT Middleware**: Every request to protected endpoints (`/ask`, `/ticket`, `/sessions`) must provide a valid Bearer Token.
+- **Resource Guarding**: Tools and endpoints (e.g., `tool_get_order_status`, `PUT /ticket/{id}`) strictly verify that the `user_id` from the JWT matches the resource owner, preventing unauthorized access.
+- **Secure Defaults**: Endpoints like `POST /ticket` extract `user_id` directly from the authenticated session rather than trusting client payloads.
 
 ### 3. Data Management & Scaling
 - **SQLAlchemy Pooling**: To handle multiple concurrent users, we use `QueuePool` with a `pool_size` of 10 and `max_overflow` of 20, preventing database connection exhaustion.
@@ -46,6 +47,9 @@ Security is enforced at the **Entry Point** (FastAPI) and the **Execution Point*
 ### 4. RAG (Retrieval Augmented Generation)
 - **Vector Store**: Knowledge base articles are embedded using `Sentence-Transformers` and stored in a `FAISS` vector index.
 - **Search**: When a user asks a general question, the agent triggers `search_knowledge_base`, providing the AI with relevant facts before it generates an answer.
+
+### 5. Frontend Reactivity
+- **Event-Driven UI**: The Next.js frontend uses Custom DOM Events (e.g., `refresh-tickets`, `open-email-modal`) to instantly synchronize cross-component states (like updating the Ticket Panel after a submission) without unnecessary network polling or full page reloads.
 
 ---
 

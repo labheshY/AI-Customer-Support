@@ -12,7 +12,7 @@ class ChatMessage(Base):
     role = Column(String) # user/ assistant
     content = Column(Text)
     tokens_used = Column(Integer, nullable=True)
-    timestamp = Column(DateTime, default = datetime.now(UTC))
+    timestamp = Column(DateTime, default = lambda: datetime.now(UTC))
 
 class Ticket(Base):
     __tablename__ = "tickets"
@@ -43,5 +43,5 @@ class Orders(Base):
     price = Column(Integer, nullable=True)        
     status = Column(String, nullable=False)
     eta = Column(String, nullable=True)
-    created_at = Column(DateTime, default = datetime.now(UTC))
-    updated_at = Column(DateTime, default = datetime.now(UTC), onupdate = datetime.now(UTC))
+    created_at = Column(DateTime, default = lambda: datetime.now(UTC))
+    updated_at = Column(DateTime, default = lambda: datetime.now(UTC), onupdate = lambda: datetime.now(UTC))

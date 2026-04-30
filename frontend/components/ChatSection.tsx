@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-const API = "http://127.0.0.1:8000";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 const SendIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
@@ -227,9 +227,15 @@ export default function ChatSection({ sessionId }: any) {
                         >
                           Browse FAQ Center
                         </Link>
+                        <button 
+                          onClick={() => window.dispatchEvent(new CustomEvent("open-ticket-modal"))}
+                          className="w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-center transition-all"
+                        >
+                          Create Support Ticket
+                        </button>
                       </div>
                     </div>
-                  ) : (
+                  ) : m.content ? (
                     <div className={`px-5 py-3.5 rounded-2xl text-[15px] leading-relaxed ${
                       m.role === "user"
                         ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
@@ -237,7 +243,7 @@ export default function ChatSection({ sessionId }: any) {
                     }`}>
                       {m.content}
                     </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </div>

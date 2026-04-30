@@ -4,6 +4,8 @@ import Sidebar from "@/components/Sidebar";
 import ChatSection from "@/components/ChatSection";
 import TicketPanel from "@/components/TicketPanel";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import TicketModal from "@/components/TicketModal";
+import EmailModal from "@/components/EmailModal";
 import { useEffect, useState } from "react";
 
 const LockIcon = () => (
@@ -13,7 +15,10 @@ const LockIcon = () => (
 export default function Home() {
   const [showLogin, setShowLogin] = useState(false);
   const [showUserLogin, setShowUserLogin] = useState(false);
-  const [password, setPassword] = useState("");
+  const [showTicketModal, setShowTicketModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [adminPassword, setAdminPassword] = useState("");
+  const [userPassword, setUserPassword] = useState("");
   const [email, setEmail] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
 
@@ -23,6 +28,17 @@ export default function Home() {
     if (stored) {
       setSessionId(stored);
     }
+
+    const handler = () => setShowTicketModal(true);
+    const emailHandler = () => setShowEmailModal(true);
+    
+    window.addEventListener("open-ticket-modal", handler);
+    window.addEventListener("open-email-modal", emailHandler);
+    
+    return () => {
+      window.removeEventListener("open-ticket-modal", handler);
+      window.removeEventListener("open-email-modal", emailHandler);
+    };
   }, []);
 
   useEffect(() => {
@@ -59,6 +75,18 @@ export default function Home() {
         </ErrorBoundary>
       </div>
     
+      {/* Ticket Creation Modal */}
+      <TicketModal 
+        isOpen={showTicketModal} 
+        onClose={() => setShowTicketModal(false)} 
+      />
+
+      {/* Email Sending Modal */}
+      <EmailModal 
+        isOpen={showEmailModal} 
+        onClose={() => setShowEmailModal(false)} 
+      />
+
       {/* Admin Login Modal */}
       {showLogin && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -84,8 +112,8 @@ export default function Home() {
                   autoFocus
                   placeholder="••••••••"
                   className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder:text-white/10"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       document.getElementById("admin-login-btn")?.click();
@@ -101,7 +129,7 @@ export default function Home() {
                     const res = await fetch("http://127.0.0.1:8000/admin/login", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ password }),
+                      body: JSON.stringify({ password: adminPassword }),
                     });
 
                     const data = await res.json();
@@ -171,8 +199,8 @@ export default function Home() {
                   type="password"
                   placeholder="••••••••"
                   className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/50 outline-none transition-all placeholder:text-white/10"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  value={userPassword}
+                  onChange={(e) => setUserPassword(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       document.getElementById("user-login-btn")?.click();
@@ -188,7 +216,7 @@ export default function Home() {
                     const res = await fetch("http://127.0.0.1:8000/user/login", {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ email, password }),
+                      body: JSON.stringify({ email, password: userPassword }),
                     });
 
                     const data = await res.json();

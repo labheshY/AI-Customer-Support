@@ -7,10 +7,11 @@ from langgraph.checkpoint.memory import MemorySaver
 import json
 
 # Import tools
-from app.services.tools import (tool_get_order_status, 
+from app.services.tools import (tool_get_order_status,
                                 tool_get_user_details,
                                 tool_create_ticket,
-                                search_knowledge_base)
+                                search_knowledge_base,
+                                update_ticket_tool)
 # Import from db
 from app.db.database import SessionLocal
 from app.db.models import ChatMessage
@@ -18,10 +19,10 @@ from app.db.models import ChatMessage
 # ------ Setup ------
 
 # Initialize Google GenAI
-model = ChatGoogleGenerativeAI(model="gemini-1.5-flash", temperature=0.3)
+model = ChatGoogleGenerativeAI(model="gemini-2.5-flash-lite", temperature=0.3)
 
 # Define the tools
-tools = [tool_get_order_status, tool_get_user_details, tool_create_ticket, search_knowledge_base]
+tools = [tool_get_order_status, tool_get_user_details, tool_create_ticket, search_knowledge_base, update_ticket_tool]
 model_with_tools = model.bind_tools(tools)
 
 # Define the state
@@ -63,59 +64,58 @@ async def run_agent_stream(query: str, session_id: str, user_id: str = None):
     Generator that runs the agent and yields events (thoughts, tools, and response chunks).
     """
     db = SessionLocal()
-    
-    # Save user message to database
-    db.add(ChatMessage(session_id=session_id, user_id=user_id, role="user", content=query))
-    db.commit()
-
-    yield json.dumps({"type": "metadata", "session_id": session_id}) + "\n"
-    config = {"configurable": {"thread_id": session_id, "user_id": user_id}}
-    inputs = {"messages": [HumanMessage(content=query)]}
-
-    full_response = ""
-    tokens_used = 0
-    
     try:
-        # Use astream_events to get granular updates
-        async for event in app_graph.astream_events(inputs, config, version="v2"):
-            kind = event["event"]
-            
-            if kind == "on_chat_model_stream":
-                content = event["data"]["chunk"].content
-                if content:
-                    full_response += content
-                    yield json.dumps({"type": "token", "content": content}) + "\n"
-            
-            elif kind == "on_tool_start":
-                tool_name = event["name"]
-                yield json.dumps({"type": "thought", "content": f"Using tool: {tool_name}..."}) + "\n"
-                
-            elif kind == "on_tool_end":
-                tool_output = event["data"]["output"]
-                yield json.dumps({"type": "thought", "content": f"Tool output received."}) + "\n"
-
-            elif kind == "on_chat_model_end":
-                # Extract token usage for cost monitoring
-                usage = event["data"]["output"].response_metadata.get("token_usage", {})
-                if usage:
-                    tokens_used = usage.get("total_tokens", 0)
-                    print(f"💰 [COST MONITOR] Session: {session_id} | Tokens: {usage.get('prompt_tokens', 0)} (prompt) + {usage.get('completion_tokens', 0)} (completion) = {tokens_used} (total)")
-    except Exception as e:
-        print(f"❌ [AGENT ERROR] {str(e)}")
-        yield json.dumps({"type": "error", "content": "I'm having trouble connecting to my brain right now."}) + "\n"
-
-    # Save assistant reply to database
-    if full_response:
-        db.add(ChatMessage(
-            session_id=session_id, 
-            user_id=user_id, 
-            role="assistant", 
-            content=full_response,
-            tokens_used=tokens_used
-        ))
+        # Save user message to database
+        db.add(ChatMessage(session_id=session_id, user_id=user_id, role="user", content=query))
         db.commit()
 
-    db.close()
+        yield json.dumps({"type": "metadata", "session_id": session_id}) + "\n"
+        config = {"configurable": {"thread_id": session_id, "user_id": user_id}}
+        inputs = {"messages": [HumanMessage(content=query)]}
+
+        full_response = ""
+        tokens_used = 0
+
+        try:
+            # Use astream_events to get granular updates
+            async for event in app_graph.astream_events(inputs, config, version="v2"):
+                kind = event["event"]
+
+                if kind == "on_chat_model_stream":
+                    content = event["data"]["chunk"].content
+                    if content:
+                        full_response += content
+                        yield json.dumps({"type": "token", "content": content}) + "\n"
+
+                elif kind == "on_tool_start":
+                    tool_name = event["name"]
+                    yield json.dumps({"type": "thought", "content": f"Using tool: {tool_name}..."}) + "\n"
+
+                elif kind == "on_tool_end":
+                    yield json.dumps({"type": "thought", "content": "Tool output received."}) + "\n"
+
+                elif kind == "on_chat_model_end":
+                    # Extract token usage for cost monitoring
+                    usage = event["data"]["output"].response_metadata.get("token_usage", {})
+                    if usage:
+                        tokens_used = usage.get("total_tokens", 0)
+                        print(f"💰 [COST MONITOR] Session: {session_id} | Tokens: {usage.get('prompt_tokens', 0)} (prompt) + {usage.get('completion_tokens', 0)} (completion) = {tokens_used} (total)")
+        except Exception as e:
+            print(f"❌ [AGENT ERROR] {str(e)}")
+            yield json.dumps({"type": "error", "content": "I'm having trouble connecting to my brain right now."}) + "\n"
+
+        # Save assistant reply to database
+        if full_response:
+            db.add(ChatMessage(
+                session_id=session_id,
+                user_id=user_id,
+                role="assistant",
+                content=full_response,
+                tokens_used=tokens_used
+            ))
+            db.commit()
+    finally:
+        db.close()
 
 # For backward compatibility or non-streaming calls
 def run_agent(query: str, session_id: str="default", user_id: str = None) -> dict:

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Skeleton from "@/components/Skeleton";
 
-const API = "http://127.0.0.1:8000";
+const API = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000";
 
 const PlusIcon = () => (
   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
@@ -99,17 +99,27 @@ export default function Sidebar({ sessionId, setSessionId, openLogin, openUserLo
 
       {/* 🔹 NEW CHAT */}
       <div className="px-4 mb-4">
-        <button
-          onClick={() => {
-            setSessionId(null);
-            localStorage.removeItem("session_id");
-            sessionStorage.removeItem("session_id");
-          }}
-          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-200 text-sm font-medium"
-        >
-          <PlusIcon />
-          <span>New Conversation</span>
-        </button>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={() => {
+              setSessionId(null);
+              localStorage.removeItem("session_id");
+              sessionStorage.removeItem("session_id");
+            }}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-200 text-sm font-medium"
+          >
+            <PlusIcon />
+            <span>New Conversation</span>
+          </button>
+          
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent("open-ticket-modal"))}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-blue-600/10 border border-blue-600/20 hover:bg-blue-600/20 transition-all duration-200 text-sm font-medium text-blue-400"
+          >
+            <PlusIcon />
+            <span>Create Support Ticket</span>
+          </button>
+        </div>
       </div>
 
       {/* 🔹 SESSIONS */}

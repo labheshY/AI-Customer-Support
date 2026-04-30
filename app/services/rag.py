@@ -17,9 +17,10 @@ def retrieve_and_generate(query: str) -> str:
     # Retrieve relevant chunks from vector store with scores
     docs_with_scores = vector_store.similarity_search_with_score(query, k=3)
 
-    # Filter chunks based on score threshold (e.g., 0.5)
-    score_threshold = 0.5
-    relevant_chunks = [doc for doc, score in docs_with_scores if score >= score_threshold]
+    # Filter chunks based on L2 distance threshold (lower = more similar on FAISS L2 index).
+    # Normalized vectors have distance range 0–2. Keep only close matches (<= 1.0).
+    score_threshold = 1.0
+    relevant_chunks = [doc for doc, score in docs_with_scores if score <= score_threshold]
     
     #Handle irrelevant data
     if not relevant_chunks:

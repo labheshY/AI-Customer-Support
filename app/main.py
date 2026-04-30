@@ -83,33 +83,46 @@ def user_login(data: UserLogin):
 
 @app.post("/ask")
 @limiter.limit("10/minute")
-async def ask_question(request_obj: Request, request: QueryRequest, user_data: Optional[dict] = Depends(get_current_user)):
-    if not request.query.strip():
+async def ask_question(request: Request, query_body: QueryRequest, user_data: Optional[dict] = Depends(get_current_user)):
+    if not query_body.query.strip():
         raise HTTPException(status_code=400, detail="Query is empty")
 
-    # Use user_id from JWT if available, otherwise fallback to Guest
-    user_id = user_data.get("sub") if user_data else "Guest"
-    session_id = request.session_id or str(uuid.uuid4())
+    # Use user_id from JWT if available, otherwise fallback to None
+    user_id = user_data.get("sub") if user_data else None
+    session_id = query_body.session_id or str(uuid.uuid4())
     
     from app.services.agent import run_agent_stream
     
     return StreamingResponse(
-        run_agent_stream(request.query, session_id, user_id),
+        run_agent_stream(query_body.query, session_id, user_id),
         media_type="text/event-stream"
     )
 
 
 @app.put("/ticket/{ticket_id}")
-def update_ticket(ticket_id: str, status: str):
-    return update_ticket_status(ticket_id, status)
+def update_ticket(ticket_id: str, status: str, user_data: Optional[dict] = Depends(get_current_user)):
+    if not user_data:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    # Admins can update any ticket; regular users can only update their own
+    user_id = None if user_data.get("is_admin") else user_data.get("sub")
+    return update_ticket_status(ticket_id, status, user_id=user_id)
 
 
 @app.get("/tickets")
-def get_tickets():
+def get_tickets(user_data: Optional[dict] = Depends(get_current_user)):
     db = SessionLocal()
     try:
-        tickets = db.query(Ticket).all()
-        return tickets
+        # If no user_data, they are a guest and should see no tickets
+        if not user_data:
+            return []
+            
+        # If admin, return all tickets
+        if user_data.get("is_admin"):
+            return db.query(Ticket).all()
+            
+        # If regular user, return only their tickets
+        user_id = user_data.get("sub")
+        return db.query(Ticket).filter(Ticket.user_id == user_id).all()
     finally:
         db.close()
 
@@ -143,14 +156,19 @@ def get_sessions(user_id: Optional[str] = None):
         db.close()
 
 
-class AdminCreateTicket(BaseModel):
+class CreateTicketRequest(BaseModel):
     issue: str
     order_id: Optional[str] = None
 
-@app.post("/admin/create-ticket")
-def admin_create_ticket(data: AdminCreateTicket):
+@app.post("/ticket")
+def api_create_ticket(data: CreateTicketRequest, user_data: Optional[dict] = Depends(get_current_user)):
+    if not user_data:
+        raise HTTPException(status_code=401, detail="Authentication required to create a ticket")
+        
+    user_id = None if user_data.get("is_admin") else user_data.get("sub")
+    
     from app.services.tools import create_ticket
-    return create_ticket(data.issue, order_id=data.order_id)
+    return create_ticket(data.issue, order_id=data.order_id, user_id=user_id)
 
 @app.post("/admin/login")
 def admin_login(data: AdminLogin):
@@ -166,9 +184,16 @@ def admin_login(data: AdminLogin):
     raise HTTPException(status_code=401, detail="Invalid password")
 
 @app.delete("/session/{session_id}")
-def delete_session(session_id: str):
+def delete_session(session_id: str, user_data: Optional[dict] = Depends(get_current_user)):
+    if not user_data:
+        raise HTTPException(status_code=401, detail="Authentication required")
     db = SessionLocal()
     try:
+        # Admins can delete any session; users can only delete their own
+        if not user_data.get("is_admin"):
+            user_id = user_data.get("sub")
+            if not db.query(ChatMessage).filter_by(session_id=session_id, user_id=user_id).first():
+                raise HTTPException(status_code=403, detail="Access denied: this session does not belong to you")
         db.query(ChatMessage).filter_by(session_id=session_id).delete()
         db.commit()
         return {"status": "deleted"}

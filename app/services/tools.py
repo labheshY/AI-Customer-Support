@@ -14,7 +14,7 @@ from langchain_core.runnables import RunnableConfig
 # Tools logic
 
 # Define a tool to get order status
-def get_order_status(order_id: str, user_id: str = None) -> str:
+def get_order_status(order_id: str, user_id: str = None) -> dict | str:
     db = SessionLocal()
     try:
         order = db.query(Orders).filter_by(order_id=order_id).first()
@@ -25,7 +25,7 @@ def get_order_status(order_id: str, user_id: str = None) -> str:
         if not user_id:
             return "Security Error: Authentication required. Please log in to check order status."
             
-        if order.user_id != user_id:
+        if str(order.user_id).strip() != str(user_id).strip():
             return f"Security Error: Order {order_id} does not belong to you. Access denied."
 
         return {
@@ -37,14 +37,14 @@ def get_order_status(order_id: str, user_id: str = None) -> str:
         db.close()
 
 # Define a tool to get user information
-def get_user_details(user_id: str, current_user_id: str = None) -> str:
+def get_user_details(user_id: str, current_user_id: str = None) -> dict | str:
     db = SessionLocal()
     try:
         # Security: User can only see their own details
         if not current_user_id:
              return "Security Error: Authentication required. Please log in to view user details."
              
-        if user_id != current_user_id:
+        if str(user_id).strip() != str(current_user_id).strip():
              return "Security Error: You are only authorized to view your own details."
 
         user = db.query(User).filter_by(user_id=user_id).first()
@@ -59,7 +59,7 @@ def get_user_details(user_id: str, current_user_id: str = None) -> str:
         db.close()
 
 # Raise tickets for order issues
-def create_ticket(issue: str, order_id: str = None, user_id: str = None) -> str:
+def create_ticket(issue: str, order_id: str = None, user_id: str = None) -> dict | str:
     # This would create a ticket in a support system
     db = SessionLocal()
 
@@ -110,7 +110,7 @@ def tool_create_ticket(issue: str, config: RunnableConfig, order_id: str = None)
         db = SessionLocal()
         order = db.query(Orders).filter_by(order_id=order_id).first()
         db.close()
-        if order and order.user_id != user_id:
+        if order and str(order.user_id).strip() != str(user_id).strip():
             return json.dumps({"error": f"Security Error: Order {order_id} does not belong to you. Cannot create ticket."})
 
     return json.dumps(create_ticket(issue, order_id, user_id))
@@ -123,4 +123,5 @@ def search_knowledge_base(query: str) -> str:
 @tool
 def update_ticket_tool(ticket_id: str, status: str, config: RunnableConfig):
     """Update ticket status (created, in_progress, resolved)"""
-    return str(update_ticket_status(ticket_id, status))
+    user_id = config.get("configurable", {}).get("user_id")
+    return str(update_ticket_status(ticket_id, status, user_id=user_id))

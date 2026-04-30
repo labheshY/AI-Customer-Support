@@ -29,6 +29,7 @@ A production-ready, AI-driven customer support ecosystem. This application lever
 - **Modern UI/UX**: Built with Next.js and Vanilla CSS, featuring glassmorphism, dark mode, and smooth micro-animations.
 - **Loading Skeletons**: Shimmering placeholders for a "snap-fast" perceived performance.
 - **Interactive FAQ Center**: A dedicated Help Center to reduce support overhead.
+- **Instant UI Sync**: Tickets update in real-time across components using custom event dispatching, eliminating manual refreshes.
 - **Privacy First**: Guest sessions are handled via `sessionStorage` for automatic cleanup.
 
 ---
@@ -37,7 +38,7 @@ A production-ready, AI-driven customer support ecosystem. This application lever
 
 - **Backend**: Python, FastAPI, LangChain, LangGraph, SQLAlchemy, PostgreSQL.
 - **Frontend**: Next.js 14, TypeScript, Vanilla CSS.
-- **AI Model**: Google Gemini 1.5 Flash.
+- **AI Model**: Google Gemini 2.5 Flash Lite.
 - **Security**: Python-JOSE (JWT), Passlib (Bcrypt), SlowAPI (Rate Limiting).
 - **Migrations**: Alembic.
 
@@ -86,6 +87,8 @@ npm run dev
 - [x] Database Migration System
 - [x] Cost Monitoring & Rate Limiting
 - [x] Modern UI & Fallback Logic
+- [x] Real-time UI Synchronization
+- [x] Email Support Integrations
 
 ---
 
