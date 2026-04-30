@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 
 const API = "http://127.0.0.1:8000";
 
@@ -16,6 +17,7 @@ export default function ChatSection({ sessionId }: any) {
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentThought, setCurrentThought] = useState("");
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -23,7 +25,12 @@ export default function ChatSection({ sessionId }: any) {
       setMessages([]);
       return;
     }
-    fetch(`${API}/chats/${sessionId}`)
+    const token = localStorage.getItem("access_token");
+    fetch(`${API}/chats/${sessionId}`, {
+      headers: {
+        "Authorization": token ? `Bearer ${token}` : ""
+      }
+    })
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -39,6 +46,14 @@ export default function ChatSection({ sessionId }: any) {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
+  const [expandedThoughts, setExpandedThoughts] = useState<number[]>([]);
+
+  const toggleThought = (idx: number) => {
+    setExpandedThoughts(prev => 
+      prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
+    );
+  };
+
   const sendMessage = async () => {
     if (!input.trim() || loading) return;
 
@@ -47,33 +62,81 @@ export default function ChatSection({ sessionId }: any) {
     setMessages(tempMessages);
     setInput("");
     setLoading(true);
+    setCurrentThought("Initializing...");
 
     try {
-      const uid = localStorage.getItem("user_id");
+      const token = localStorage.getItem("access_token");
       const res = await fetch(`${API}/ask`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: userMsg, session_id: sessionId, user_id: uid }),
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": token ? `Bearer ${token}` : ""
+        },
+        body: JSON.stringify({ query: userMsg, session_id: sessionId }), // user_id removed from body
       });
 
-      const data = await res.json();
+      if (!res.body) return;
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
       
-      if (!sessionId && data.session_id) {
-        localStorage.setItem("session_id", data.session_id);
-        window.dispatchEvent(new CustomEvent("set-session", { detail: data.session_id }));
+      let assistantMsg = { role: "assistant", content: "", thought: "" };
+      const currentIdx = tempMessages.length;
+      
+      setMessages([...tempMessages, assistantMsg]);
+      setExpandedThoughts(prev => [...prev, currentIdx]);
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split("\n").filter(l => l.trim());
+        
+        for (const line of lines) {
+          try {
+            const data = JSON.parse(line);
+            if (data.type === "metadata") {
+              if (!sessionId && data.session_id) {
+                const uid = localStorage.getItem("user_id");
+                if (uid) {
+                  localStorage.setItem("session_id", data.session_id);
+                } else {
+                  sessionStorage.setItem("session_id", data.session_id);
+                }
+                window.dispatchEvent(new CustomEvent("set-session", { detail: data.session_id }));
+              }
+            } else if (data.type === "token") {
+              assistantMsg.content += data.content;
+            } else if (data.type === "thought") {
+              assistantMsg.thought += (assistantMsg.thought ? "\n" : "") + data.content;
+              setCurrentThought(data.content);
+            } else if (data.type === "error") {
+              assistantMsg.content = "ERROR_FALLBACK";
+            }
+            
+            // Update messages state
+            setMessages(prev => {
+              const updated = [...prev];
+              updated[currentIdx] = { ...assistantMsg };
+              return updated;
+            });
+          } catch (e) {
+            console.error("Error parsing stream chunk", e);
+          }
+        }
       }
 
-      setMessages([...tempMessages, { role: "assistant", content: data.response }]);
     } catch (error) {
       console.error("Failed to send message", error);
       setMessages([...tempMessages, { role: "assistant", content: "Sorry, I encountered an error. Please try again." }]);
     } finally {
       setLoading(false);
+      setCurrentThought("");
     }
   };
 
   return (
-    <main className="flex-1 flex flex-col bg-[#020617] relative overflow-hidden">
+    <main className="flex-1 flex flex-col h-screen bg-[#020617] relative overflow-hidden">
       {/* Background decoration */}
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-[400px] bg-blue-600/5 blur-[120px] pointer-events-none" />
 
@@ -119,12 +182,62 @@ export default function ChatSection({ sessionId }: any) {
                 }`}>
                   {m.role === "user" ? "U" : <BotIcon />}
                 </div>
-                <div className={`px-5 py-3.5 rounded-2xl text-[15px] leading-relaxed ${
-                  m.role === "user"
-                    ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
-                    : "bg-white/5 border border-white/10 text-white/90"
-                }`}>
-                  {m.content}
+                <div className="flex flex-col gap-2">
+                  {m.role === "assistant" && m.thought && (
+                    <div className="flex flex-col bg-white/5 border border-white/10 rounded-2xl overflow-hidden mb-1">
+                      <button 
+                        onClick={() => toggleThought(i)}
+                        className="flex items-center justify-between px-4 py-2 hover:bg-white/5 transition-colors text-[11px] font-bold text-white/30 uppercase tracking-widest"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse" />
+                          AI Thought Process
+                        </div>
+                        <svg 
+                          xmlns="http://www.w3.org/2000/svg" 
+                          width="14" height="14" 
+                          viewBox="0 0 24 24" fill="none" 
+                          stroke="currentColor" strokeWidth="2" 
+                          strokeLinecap="round" strokeLinejoin="round"
+                          className={`transition-transform duration-200 ${expandedThoughts.includes(i) ? 'rotate-180' : ''}`}
+                        >
+                          <path d="m6 9 6 6 6-6"/>
+                        </svg>
+                      </button>
+                      {expandedThoughts.includes(i) && (
+                        <div className="px-4 pb-3 pt-1 text-xs text-white/50 italic leading-relaxed border-t border-white/5 bg-black/10">
+                          {m.thought}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {m.content === "ERROR_FALLBACK" ? (
+                    <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 space-y-4 max-w-sm">
+                      <div className="flex items-center gap-3 text-red-400 mb-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                        <span className="text-sm font-bold uppercase tracking-tight">System Connection Error</span>
+                      </div>
+                      <p className="text-sm text-white/60 leading-relaxed">
+                        I'm having trouble reaching my AI brain right now. Please try again in a moment or use the options below:
+                      </p>
+                      <div className="flex flex-col gap-2">
+                        <Link 
+                          href="/faq" 
+                          className="w-full py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-xs font-bold text-center transition-all"
+                        >
+                          Browse FAQ Center
+                        </Link>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className={`px-5 py-3.5 rounded-2xl text-[15px] leading-relaxed ${
+                      m.role === "user"
+                        ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20"
+                        : "bg-white/5 border border-white/10 text-white/90 shadow-sm"
+                    }`}>
+                      {m.content}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -132,14 +245,21 @@ export default function ChatSection({ sessionId }: any) {
 
           {loading && (
             <div className="flex justify-start animate-in">
-              <div className="flex gap-4 max-w-[85%]">
-                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-white/60">
+              <div className="flex gap-3 max-w-[85%]">
+                <div className="flex-shrink-0 w-6 h-6 mt-1 rounded-md bg-blue-600/20 flex items-center justify-center text-blue-400 border border-blue-500/20 shadow-sm animate-pulse">
                   <BotIcon />
                 </div>
-                <div className="px-5 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white/40 flex items-center gap-2">
-                  <span className="w-1 h-1 bg-white/40 rounded-full animate-bounce [animation-delay:-0.3s]" />
-                  <span className="w-1 h-1 bg-white/40 rounded-full animate-bounce [animation-delay:-0.15s]" />
-                  <span className="w-1 h-1 bg-white/40 rounded-full animate-bounce" />
+                <div className="flex flex-col gap-1.5">
+                  <div className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-white/40 flex items-center gap-2 shadow-sm backdrop-blur-sm">
+                    <div className="flex gap-1">
+                      <span className="w-1 h-1 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+                      <span className="w-1 h-1 bg-indigo-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+                      <span className="w-1 h-1 bg-violet-500 rounded-full animate-bounce" />
+                    </div>
+                    <span className="text-[10px] font-bold tracking-widest uppercase bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                      {currentThought || "AI is thinking..."}
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

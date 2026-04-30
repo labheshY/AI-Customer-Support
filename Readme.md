@@ -1,126 +1,77 @@
-# AI Customer Support Copilot 🤖
+# 🚀 AI Customer Support Copilot (Enterprise Edition)
 
-A full-stack **AI-powered customer support system** built with **Next.js**, **FastAPI**, and **LangChain**, combining RAG, agent tools, and real-time chat to simulate a production-grade support workflow.
+A production-ready, AI-driven customer support ecosystem. This application leverages **LangGraph**, **Gemini 2.5 Flash Lite**, and **FastAPI** to provide a secure, scalable, and polished support experience.
 
----
+![UI-UX-Modern](https://img.shields.io/badge/UI--UX-Modern-blueviolet)
+![Security-JWT](https://img.shields.io/badge/Security-JWT_Auth-blue)
+![Database-Alembic](https://img.shields.io/badge/Database-Alembic_Migrations-emerald)
 
-## ✨ Key Highlights
+## 🌟 Key Features
 
-* 🧠 **AI Agent with Tools**
-  Automatically handles:
-  * Order tracking
-  * User lookup
-  * Ticket creation
+### 🧠 Intelligent Agentic AI
+- **LangGraph Orchestration**: Uses a state-machine approach for complex multi-turn support reasoning.
+- **Tool-Calling Architecture**: The AI can autonomously check order status, retrieve user details, and create support tickets.
+- **Real-time Thought Streaming**: Users see the AI's "thought process" as it works, building trust and transparency.
 
-* 📚 **RAG (Retrieval-Augmented Generation)**
-  Uses FAISS vector search to provide context-aware answers from documents.
+### 🛡️ Enterprise-Grade Security
+- **JWT Authentication**: Secure, stateless session management with signed tokens.
+- **Bcrypt Hashing**: Industry-standard password protection (no plain-text storage).
+- **Resource Ownership Verification**: Strict backend checks ensure users can only access their *own* orders and tickets.
+- **CORS Hardening**: API access restricted to trusted frontend origins.
 
-* 💬 **Session-Based Chat System**
-  Persistent conversations stored in PostgreSQL with session tracking.
+### ⚡ Performance & Reliability
+- **Connection Pooling**: Optimized PostgreSQL connection management using SQLAlchemy QueuePool.
+- **Alembic Migrations**: Zero-downtime database schema updates (Version-controlled DB).
+- **Rate Limiting**: Protects against API abuse and controls LLM token costs.
+- **Graceful Fallback**: Automated "offline mode" that guides users to a manual ticket form or FAQ if the AI service is unreachable.
 
-* 🎟️ **Ticket Management System**
-  * Create tickets via AI
-  * Update status (Admin only)
-  * Real-time dashboard
-
-* 🔐 **Role-Based Access (Admin/User)**
-  Admin login controls ticket updates and system actions.
-
-* ⚡ **Modern UI/UX**
-  * Glassmorphism design
-  * Centered chat layout
-  * Sidebar navigation + ticket panel
-
----
-
-## 🧱 Architecture
-
-```text
-Frontend (Next.js)
- ├── Chat UI (session-based)
- ├── Sidebar (history + sessions)
- ├── Ticket Dashboard
-
-Backend (FastAPI)
- ├── AI Agent (LangChain)
- ├── RAG Pipeline (FAISS)
- ├── Tool System (orders, users, tickets)
- ├── REST API
-
-Database (PostgreSQL)
- ├── Chat messages
- ├── Sessions
- ├── Tickets
-```
+### 🎨 User Experience (UX)
+- **Modern UI/UX**: Built with Next.js and Vanilla CSS, featuring glassmorphism, dark mode, and smooth micro-animations.
+- **Loading Skeletons**: Shimmering placeholders for a "snap-fast" perceived performance.
+- **Interactive FAQ Center**: A dedicated Help Center to reduce support overhead.
+- **Privacy First**: Guest sessions are handled via `sessionStorage` for automatic cleanup.
 
 ---
 
-## 🛠️ Tech Stack
+## 🏗️ Technical Stack
 
-### Frontend
-* Next.js 14
-* Tailwind CSS
-* TypeScript
-
-### Backend
-* FastAPI
-* SQLAlchemy
-* Uvicorn
-
-### AI / ML
-* LangChain
-* Google Gemini
-* Sentence Transformers
-
-### Database
-* PostgreSQL
+- **Backend**: Python, FastAPI, LangChain, LangGraph, SQLAlchemy, PostgreSQL.
+- **Frontend**: Next.js 14, TypeScript, Vanilla CSS.
+- **AI Model**: Google Gemini 1.5 Flash.
+- **Security**: Python-JOSE (JWT), Passlib (Bcrypt), SlowAPI (Rate Limiting).
+- **Migrations**: Alembic.
 
 ---
 
-## 📦 Setup & Installation
+## 🛠️ Getting Started
 
-### 🔹 Prerequisites
-* Python 3.9+
-* Node.js 18+
-* PostgreSQL
+### Prerequisites
+- Python 3.10+
+- Node.js 18+
+- PostgreSQL
 
----
-
-### ⚙️ Backend Setup
-
+### 1. Backend Setup
 ```bash
-git clone <repo-url>
-cd AI-Customer-Support-Copilot
-python -m venv .venv
-.venv\Scripts\activate   # Windows
+# Install dependencies
 pip install -r requirements.txt
-```
 
-Create `.env`:
+# Setup environment
+# Create a .env file with:
+# DATABASE_URL=postgresql://user:pass@localhost:5432/db_name
+# GOOGLE_API_KEY=your_gemini_key
+# SECRET_KEY=your_jwt_secret
 
-```env
-DATABASE_URL=postgresql://user:pass@localhost:5432/dbname
-ADMIN_PASSWORD=your_secure_password
-GOOGLE_API_KEY=your_gemini_api_key
-```
+# Run migrations
+python -m alembic upgrade head
 
-Initialize DB:
-
-```bash
-python -m app.db.create
+# Seed initial data
 python -m app.db.migrate_data
-```
 
-Run backend:
-
-```bash
+# Start server
 uvicorn app.main:app --reload
 ```
 
----
-
-### 🎨 Frontend Setup
-
+### 2. Frontend Setup
 ```bash
 cd frontend
 npm install
@@ -129,33 +80,13 @@ npm run dev
 
 ---
 
-## 📸 Features Overview
-* Chat with AI assistant
-* Ask about orders (e.g. `ORD1001`)
-* AI retrieves data + responds
-* Raises support tickets automatically
-* Admin can update ticket status
+## 🗺️ Roadmap Accomplishments
+- [x] Secure JWT & Password Hashing
+- [x] Tool-based AI Agent (LangGraph)
+- [x] Database Migration System
+- [x] Cost Monitoring & Rate Limiting
+- [x] Modern UI & Fallback Logic
 
 ---
 
-## 🧠 What Makes This Project Different
-Unlike basic chatbots, this system combines:
-* **RAG + Agent Tools**
-* **Database-backed memory**
-* **Role-based control**
-* **End-to-end full-stack architecture**
-
-👉 This mirrors how real-world AI support systems are built.
-
----
-
-## 🔮 Future Improvements
-* JWT Authentication
-* Streaming responses (real-time typing)
-* Multi-user support
-* Analytics dashboard
-
----
-
-## 📄 License
-MIT License
+Developed with ❤️ for the future of Customer Support.

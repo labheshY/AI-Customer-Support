@@ -3,6 +3,7 @@
 import Sidebar from "@/components/Sidebar";
 import ChatSection from "@/components/ChatSection";
 import TicketPanel from "@/components/TicketPanel";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import { useEffect, useState } from "react";
 
 const LockIcon = () => (
@@ -17,7 +18,8 @@ export default function Home() {
   const [sessionId, setSessionId] = useState<string | null>(null);
 
   useEffect(() => {
-    const stored = localStorage.getItem("session_id");
+    // Check sessionStorage first (for guests), then localStorage (as fallback)
+    const stored = sessionStorage.getItem("session_id") || localStorage.getItem("session_id");
     if (stored) {
       setSessionId(stored);
     }
@@ -35,20 +37,26 @@ export default function Home() {
   return (
     <div className="h-screen w-full bg-[#020617] text-white flex overflow-hidden font-sans">
       <div className="hidden lg:flex flex-none">
-        <Sidebar
-          sessionId={sessionId}
-          setSessionId={setSessionId}
-          openLogin={() => setShowLogin(true)}
-          openUserLogin={() => setShowUserLogin(true)}
-        />
+        <ErrorBoundary fallbackName="Sidebar">
+          <Sidebar
+            sessionId={sessionId}
+            setSessionId={setSessionId}
+            openLogin={() => setShowLogin(true)}
+            openUserLogin={() => setShowUserLogin(true)}
+          />
+        </ErrorBoundary>
       </div>
       
-      <div className="flex-1 min-w-0">
-        <ChatSection sessionId={sessionId} />
+      <div className="flex-1 min-w-0 h-screen flex flex-col">
+        <ErrorBoundary fallbackName="Chat Interface">
+          <ChatSection sessionId={sessionId} />
+        </ErrorBoundary>
       </div>
       
       <div className="hidden xl:flex flex-none">
-        <TicketPanel />
+        <ErrorBoundary fallbackName="Ticket Panel">
+          <TicketPanel />
+        </ErrorBoundary>
       </div>
     
       {/* Admin Login Modal */}
@@ -100,6 +108,8 @@ export default function Home() {
 
                     if (data.status === "ok") {
                       localStorage.setItem("isAdmin", "true");
+                      localStorage.setItem("access_token", data.access_token);
+                      localStorage.removeItem("session_id");
                       setShowLogin(false);
                       location.reload();
                     } else {
@@ -186,6 +196,8 @@ export default function Home() {
                     if (data.status === "ok") {
                       localStorage.setItem("user_id", data.user_id);
                       localStorage.setItem("user_name", data.name);
+                      localStorage.setItem("access_token", data.access_token);
+                      localStorage.removeItem("session_id");
                       setShowUserLogin(false);
                       location.reload();
                     } else {

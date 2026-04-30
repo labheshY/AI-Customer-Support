@@ -8,12 +8,16 @@ def update_order_status(db, order_id: str, new_status: str):
         return True
     return False
 
-def update_ticket_status(ticket_id: str, status: str):
+def update_ticket_status(ticket_id: str, status: str, user_id: str = None):
     db = SessionLocal()
     try:
         ticket = db.query(Ticket).filter_by(ticket_id=ticket_id).first()
 
         if ticket:
+            # Security: Check if ticket belongs to the user
+            if user_id and ticket.user_id != user_id:
+                 return {"error": "Security Error: You are not authorized to update this ticket."}
+
             ticket.status = status
             
             # If ticket is resolved and has an order_id, update order status

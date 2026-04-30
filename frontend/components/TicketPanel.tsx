@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import Skeleton from "@/components/Skeleton";
 
 const API = "http://127.0.0.1:8000";
 
@@ -147,7 +149,22 @@ export default function TicketPanel() {
           </div>
         )}
 
-        {tickets.filter(t => isAdmin || t.status !== "resolved").length === 0 && (
+        {refreshing && tickets.length === 0 && (
+          <div className="space-y-4 animate-in">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="p-4 rounded-xl border border-white/5 bg-white/[0.01] space-y-3">
+                <div className="flex justify-between items-center">
+                  <Skeleton className="w-16 h-3" />
+                  <Skeleton className="w-12 h-3" />
+                </div>
+                <Skeleton className="w-full h-4" />
+                <Skeleton className="w-3/4 h-3" />
+              </div>
+            ))}
+          </div>
+        )}
+
+        {!refreshing && tickets.filter(t => isAdmin || t.status !== "resolved").length === 0 && (
           <div className="h-40 flex flex-col items-center justify-center text-center px-4">
             <p className="text-xs text-white/20 font-medium">No active tickets found</p>
           </div>
@@ -200,11 +217,21 @@ export default function TicketPanel() {
         ))}
       </div>
 
-      <div className="p-4 bg-white/[0.01] border-t border-white/5">
+      <div className="p-4 bg-white/[0.01] border-t border-white/5 space-y-3">
         <div className="flex items-center justify-between text-[10px] font-medium text-white/30 px-2 uppercase tracking-widest">
           <span>Total: {tickets.length}</span>
           <span>Last Update: {lastUpdate}</span>
         </div>
+        
+        <Link 
+          href="/faq" 
+          className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl border border-white/5 hover:border-white/10 hover:bg-white/5 transition-all group"
+        >
+          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest group-hover:text-blue-400 transition-colors">
+            Help Center & FAQ
+          </span>
+          <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/20 group-hover:text-blue-500 transition-colors"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </Link>
       </div>
     </aside>
   );

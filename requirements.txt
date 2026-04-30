@@ -5,7 +5,14 @@ langchain-community
 langchain-text-splitters
 langchain-google-genai
 langchain-huggingface
+langgraph
 sentence-transformers
 uvicorn
 psycopg2-binary
 sqlalchemy
+bcrypt==4.0.1
+passlib[bcrypt]
+python-jose[cryptography]
+python-multipart
+alembic
+slowapi

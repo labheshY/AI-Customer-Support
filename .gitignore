@@ -8,9 +8,10 @@ venv/
 ENV/
 .env
 
-# Database
+# Database & Migrations
 *.sqlite3
 *.db
+alembic.log
 
 # LangChain / Vectorstore
 vectorstore/
@@ -22,7 +23,12 @@ out/
 build/
 .DS_Store
 
-# IDEs
+# IDEs & Private Docs
 .vscode/
 .idea/
 .gemini/
+PRODUCTION_READINESS.md
+
+# OS files
+Thumbs.db
+desktop.ini

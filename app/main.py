@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends, Header, Request
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from typing import Optional
 import uuid
@@ -10,13 +11,36 @@ from app.services.agent import run_agent
 from app.services.ticket_service import update_ticket_status
 from app.db.database import SessionLocal
 from app.db.models import Ticket, ChatMessage, User
+from app.services.auth import verify_password, create_access_token, decode_access_token
+
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 # ------ Setup ------
 
+security = HTTPBearer(auto_error=False)
+
+def get_current_user(auth: HTTPAuthorizationCredentials = Depends(security)):
+    if not auth:
+        return None
+    payload = decode_access_token(auth.credentials)
+    return payload
+
+ALLOWED_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    # Add your production domain here later
+]
+
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI()
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -44,29 +68,35 @@ def user_login(data: UserLogin):
     db = SessionLocal()
     try:
         user = db.query(User).filter_by(email=data.email).first()
-        if user and user.hashed_password == data.password: # Simple check for now
+        if user and verify_password(data.password, user.hashed_password):
+            token = create_access_token(data={"sub": user.user_id, "name": user.name})
             return {
                 "status": "ok",
                 "user_id": user.user_id,
-                "name": user.name
+                "name": user.name,
+                "access_token": token,
+                "token_type": "bearer"
             }
         raise HTTPException(status_code=401, detail="Invalid credentials")
     finally:
         db.close()
 
 @app.post("/ask")
-def ask_question(request: QueryRequest):
+@limiter.limit("10/minute")
+async def ask_question(request_obj: Request, request: QueryRequest, user_data: Optional[dict] = Depends(get_current_user)):
     if not request.query.strip():
         raise HTTPException(status_code=400, detail="Query is empty")
 
+    # Use user_id from JWT if available, otherwise fallback to Guest
+    user_id = user_data.get("sub") if user_data else "Guest"
     session_id = request.session_id or str(uuid.uuid4())
     
-    response_text = run_agent(request.query, session_id=session_id, user_id=request.user_id)
+    from app.services.agent import run_agent_stream
     
-    return {
-        "response": response_text,
-        "session_id": session_id
-    }
+    return StreamingResponse(
+        run_agent_stream(request.query, session_id, user_id),
+        media_type="text/event-stream"
+    )
 
 
 @app.put("/ticket/{ticket_id}")
@@ -125,8 +155,14 @@ def admin_create_ticket(data: AdminCreateTicket):
 @app.post("/admin/login")
 def admin_login(data: AdminLogin):
     admin_pass = os.getenv("ADMIN_PASSWORD", "admin123")
+    # In production, this should also use hashing, but for now we'll issue a secure JWT
     if data.password == admin_pass:
-        return {"status": "ok"}
+        token = create_access_token(data={"sub": "admin", "is_admin": True})
+        return {
+            "status": "ok", 
+            "access_token": token,
+            "token_type": "bearer"
+        }
     raise HTTPException(status_code=401, detail="Invalid password")
 
 @app.delete("/session/{session_id}")

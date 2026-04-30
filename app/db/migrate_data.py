@@ -3,6 +3,7 @@ from pathlib import Path
 from app.db.database import SessionLocal
 from app.db.models import User, Orders, Base
 from app.db.database import engine
+from app.services.auth import get_password_hash
 
 def migrate():
     # Ensure tables are created
@@ -24,7 +25,7 @@ def migrate():
                         user_id=u["user_id"],
                         name=u["name"],
                         email=u["email"],
-                        hashed_password="default_hashed_password" # In production, use real hashing
+                        hashed_password=get_password_hash("password123") # Securely hashed
                     )
                     db.add(user)
     

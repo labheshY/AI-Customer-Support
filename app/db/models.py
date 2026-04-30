@@ -11,6 +11,7 @@ class ChatMessage(Base):
     user_id = Column(String, nullable=True, index=True) # Added index for user filtering
     role = Column(String) # user/ assistant
     content = Column(Text)
+    tokens_used = Column(Integer, nullable=True)
     timestamp = Column(DateTime, default = datetime.now(UTC))
 
 class Ticket(Base):

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Skeleton from "@/components/Skeleton";
 
 const API = "http://127.0.0.1:8000";
 
@@ -24,14 +25,20 @@ export default function Sidebar({ sessionId, setSessionId, openLogin, openUserLo
   const [sessions, setSessions] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const fetchSessions = () => {
     let uid = localStorage.getItem("user_id");
-    if (!uid) return;
+    if (!uid) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     fetch(`${API}/sessions?user_id=${uid}`)
       .then((r) => r.json())
       .then(setSessions)
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setLoading(false));
   };
 
   useEffect(() => {
@@ -54,7 +61,12 @@ export default function Sidebar({ sessionId, setSessionId, openLogin, openUserLo
 
   const open = (sid: string) => {
     setSessionId(sid);
-    localStorage.setItem("session_id", sid);
+    const uid = localStorage.getItem("access_token"); // Use token as check for logged in
+    if (uid) {
+      localStorage.setItem("session_id", sid);
+    } else {
+      sessionStorage.setItem("session_id", sid);
+    }
   };
 
   const del = async (e: React.MouseEvent, sid: string) => {
@@ -88,7 +100,11 @@ export default function Sidebar({ sessionId, setSessionId, openLogin, openUserLo
       {/* 🔹 NEW CHAT */}
       <div className="px-4 mb-4">
         <button
-          onClick={() => setSessionId(null)}
+          onClick={() => {
+            setSessionId(null);
+            localStorage.removeItem("session_id");
+            sessionStorage.removeItem("session_id");
+          }}
           className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 transition-all duration-200 text-sm font-medium"
         >
           <PlusIcon />
@@ -101,7 +117,17 @@ export default function Sidebar({ sessionId, setSessionId, openLogin, openUserLo
         <div className="px-3 mb-2">
           <p className="text-[11px] font-medium text-white/20 uppercase tracking-wider">Recent Chats</p>
         </div>
-        {sessions.length === 0 && (
+        {loading && (
+          <div className="px-3 space-y-2">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="flex items-center gap-3 px-3 py-2">
+                <Skeleton className="w-4 h-4 rounded" />
+                <Skeleton className="w-24 h-3" />
+              </div>
+            ))}
+          </div>
+        )}
+        {!loading && sessions.length === 0 && (
           <div className="px-3 py-4 text-xs text-white/20 italic text-center">
             No recent sessions
           </div>
@@ -153,6 +179,9 @@ export default function Sidebar({ sessionId, setSessionId, openLogin, openUserLo
           <button
             onClick={() => {
               localStorage.setItem("isAdmin", "false");
+              localStorage.removeItem("session_id");
+              localStorage.removeItem("access_token");
+              sessionStorage.removeItem("session_id");
               location.reload();
             }}
             className="w-full text-[11px] text-red-400/80 hover:text-red-400 transition-colors font-medium text-center uppercase tracking-wider py-2"
@@ -166,6 +195,9 @@ export default function Sidebar({ sessionId, setSessionId, openLogin, openUserLo
                 onClick={() => {
                   localStorage.removeItem("user_name");
                   localStorage.removeItem("user_id");
+                  localStorage.removeItem("session_id");
+                  localStorage.removeItem("access_token");
+                  sessionStorage.removeItem("session_id");
                   location.reload();
                 }}
                 className="w-full text-[11px] text-red-400/80 hover:text-red-400 transition-colors font-medium text-center uppercase tracking-wider py-1"
