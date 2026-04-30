@@ -14,7 +14,7 @@ graph TD
     subgraph "Backend Engine"
         FastAPI -->|Auth Check| Security[JWT / Bcrypt Layer]
         Security -->|State Management| LangGraph[LangGraph AI Agent]
-        LangGraph -->|Inference| Gemini[Gemini 1.5 Flash]
+        LangGraph -->|Inference| Gemini[Gemini 2.5 Flash Lite]
         
         LangGraph -->|Tool Calling| Tools[Internal Service Tools]
         Tools -->|Query| DB[(PostgreSQL)]
